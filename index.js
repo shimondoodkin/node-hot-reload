@@ -153,14 +153,16 @@ function watch()
     {
      var proto = mirror.__proto__ = Object.getPrototypeOf(goal);
      Object.getOwnPropertyNames(mirror).forEach(function(propertyName){
-       if(!Object.hasOwnProperty(goal,propertyName)) return
-       delete mirror[propertyName]
+       if(!Object.hasOwnProperty(goal,propertyName)) return;
+       delete mirror[propertyName];
      });
      Object.getOwnPropertyNames(goal).forEach(function(propertyName){
-       if(!Object.hasOwnProperty(goal,propertyName)) return
-       Object.defineProperty(mirror,propertyName,Object.getOwnPropertyDescriptor(goal,propertyName))
+       if(!Object.hasOwnProperty(goal,propertyName))return;
+        Object.defineProperty(mirror,propertyName,Object.getOwnPropertyDescriptor(goal,propertyName));
      })
      return mirror
+     // Object.seal/Object.freeze on the mirror will result in it not being able to copy on it correctl
+     // and various other Object.defineProperty combos will stop that model from working
     };exports.copy3=copy3;
 
 function watchrel()
