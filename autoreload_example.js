@@ -6,7 +6,7 @@ autoreload.watchrel('mymodule_example.js', function (newmodule){
    /* you can put here staff to make your module look like it was initialized well. */
    newmodule.name=mymodule.name;
    //mymodule.init(); // init the module before if possible, it will save error time.
-   autoreload.copy3(mymodule,newmodule);
+   autoreload.copy(mymodule,newmodule);
    //mymodule=newmodule; // replace reference - probabaly the best but you must update all references you have 
    //mymodule.moreinit(); // while this not finished you may get errors, because of not whell initilized your module.
 });
@@ -19,8 +19,16 @@ mymodule.name="Shimon";
 
 
 http.createServer(function (request, response) {
-  response.writeHead(200, {'Content-Type': 'text/plain'});
-  response.end(mymodule.time() + '\n');
+   try
+   {
+    response.writeHead(200, {'Content-Type': 'text/plain'});
+    response.end(mymodule.time() + '\n');
+   }
+   catch(err)
+   {
+    response.end(err.stack);
+    console.log(err.stack);
+   }
 
   //to do, main module reloadable instead of above you might use: 
   //mymodule.handlerequest(req,res); 

@@ -18,7 +18,7 @@ this.path=__dirname;
 
 function loadlater( filename , callback )
 {
- console.log((new Date).toString()+' will load file: '+filename);
+ //console.log((new Date).toString()+' will load file: '+filename);
  
  return setTimeout(function ()
  {
@@ -26,25 +26,56 @@ function loadlater( filename , callback )
   fs.readFile(filename, function (err, content)
   {
    if (err) throw err; // need to add better error handling
+   var parseerror=false,errorincallback=false;
    try
    {
+   
     var dirname = path.dirname(filename);
+    
+    var newmodule={}; 
+    var sandbox = {};
+    for (var k in global)
+    {
+     sandbox[k] = global[k];
+    }
+    
+    sandbox.require     = require;
+    sandbox.exports     = newmodule;
+    sandbox.__filename  = filename;
+    sandbox.__dirname   = dirname;
+    sandbox.module      = newmodule;
+    sandbox.root        = global;
+    
     // create wrapper function
-    var wrapper = "(function (exports, require, module, __filename, __dirname) { "
+    var wrapper = "this.compiledWrapper = (function (exports, require, module, __filename, __dirname) { "
                 + content
                 + "\n});";
-    var compiledWrapper = process.compile(wrapper, filename);
-    var newmodule={}; 
-    compiledWrapper.apply(newmodule, [newmodule, require, newmodule, filename, dirname]);
-
+    parseerror=true;
+    process.binding('evals').Script.runInNewContext(wrapper, sandbox, filename);
+    parseerror=false;
+    sandbox.compiledWrapper.apply(newmodule, [newmodule, require, newmodule, filename, dirname]);
+    errorincallback=true;
     callback(newmodule);
+    errorincallback=false;
    }
    catch(err)
    {
     if (err) 
     {
-     console.log(err.message);
-     console.log(err.stack);
+     if(parseerror)
+     {
+      console.log("Error Parsing "+filename+" \r\n (restarting the application may give you a more meaningful error message.)");
+      console.log(" -- start tryload message -- ");
+      tryload(filename,function(errortext){
+       console.log(errortext);
+       console.log(" -- end tryload message -- ");
+      });
+     }
+     else
+     {
+      if(errorincallback)console.log("Error in Callback hot-reloading: "+filename);
+      console.log(err.stack);
+     }
     }
     //if (err) throw err; // need to add better error handling
    }
@@ -72,15 +103,18 @@ function watch()
  
  console.log((new Date).toString()+' watch reaload file: '+filename);
  trackedfiles[filename]=true;
- var functionload=function()
+ var functionload=function(curr,prev)
  {
-  if(loadmoduletimer[filename])
+  if (curr.mtime.valueOf() != prev.mtime.valueOf() || curr.ctime.valueOf() != prev.ctime.valueOf())
   {
-   console.log((new Date).toString()+'timeout cleaned - will load file: '+filename);
-   clearTimeout(loadmoduletimer[filename]);
+   if(loadmoduletimer[filename])
+   {
+    //console.log((new Date).toString()+'timeout cleaned - will load file: '+filename);
+    clearTimeout(loadmoduletimer[filename]);
+   }
+   loadmoduletimer[filename] = 
+   loadlater( filename ,callback);
   }
-  loadmoduletimer[filename] = 
-  loadlater( filename ,callback);
  }; 
  for(var i=0;i<watchfilename.length;i++)
   fs.watchFile(watchfilename[i], functionload);
@@ -101,9 +135,9 @@ function watch()
     
     function copy(target,newobject) // replace and delete
     {
-     if(newobject.constructor) target.constructor=newobject.constructor; // is this works?
-     if(newobject.__proto__) target.__proto__=newobject.__proto__; // is this works?
-     if(newobject.prototype) target.prototype=newobject.prototype; // is this works?
+     if(newobject.constructor) target.constructor=newobject.constructor; 
+     if(newobject.__proto__) target.__proto__=newobject.__proto__; 
+     if(newobject.prototype) target.prototype=newobject.prototype;
      
      //replace
      for(var i in newobject)
@@ -118,7 +152,7 @@ function watch()
      }
     };exports.copy=copy;
     
-    function copy2(target,newobject) // replace and delete
+    function copy2(target,newobject) // replace and delete // not working
     {
      if(newobject.constructor) target.constructor=newobject.constructor; // is this works?
      if(newobject.__proto__) target.__proto__=newobject.__proto__; // is this works?
@@ -149,7 +183,7 @@ function watch()
      }
     };exports.copy2=copy2;
     
-    function copy3(mirror,goal)
+    function copy3(mirror,goal) // not working
     {
      var proto = mirror.__proto__ = Object.getPrototypeOf(goal);
      Object.getOwnPropertyNames(mirror).forEach(function(propertyName){
@@ -161,8 +195,12 @@ function watch()
         Object.defineProperty(mirror,propertyName,Object.getOwnPropertyDescriptor(goal,propertyName));
      })
      return mirror
+     
+     // copy3 function is with help of bradleymeck.
+     // bradleymeck:
      // Object.seal/Object.freeze on the mirror will result in it not being able to copy on it correctl
      // and various other Object.defineProperty combos will stop that model from working
+     // but as long as you dont have those happen, you are peachy
     };exports.copy3=copy3;
 
 function watchrel()
@@ -182,18 +220,18 @@ function watchrel()
  }
  for(var i=0;i<watchfilename.length;i++)
   watchfilename[i]=this.path+'/'+watchfilename[i]; 
- watch(watchfilename,filename,callback);
+ watch(watchfilename,this.path+'/'+filename,callback);
 }; 
 exports.watchrel=watchrel;
 
 
-
+/*
 function calllater( filename , callback )
 {
- console.log((new Date).toString()+' will call file: '+filename);
+ //console.log((new Date).toString()+' will call file: '+filename);
  return setTimeout(function ()
  {
-  console.log((new Date).toString()+' calling file: '+filename);
+  //console.log((new Date).toString()+' calling file: '+filename);
   callback(filename);
  }, 500); // sometimes i had a situation when the watchFile callback called while uploading the file and resulted in error. 
 } exports.calllater=calllater;
@@ -230,3 +268,28 @@ function watchonly()
  for(var i=0;i<watchfilename.length;i++)
   fs.watchFile(watchfilename[i], callfunction);
 };exports.watchonly=watchonly;
+*/
+
+function tryload(modulename,callback)
+{
+ modulename=modulename.replace(/[^\\]'/g, function(s) { return s.slice(0, 1)+'\\\'';}) // escape arg
+ var command="node '"+modulename+"'";
+ console.log(command);
+ var addtext="";
+ child = require('child_process').exec(command, function (error, stdout, stderr)
+ {
+  if(killtimeout)clearTimeout(killtimeout);
+  //console.log('stdout: ' + stdout);
+  callback(addtext+stderr);
+  //console.log('stderr: ' + stderr);
+  //if (error !== null)
+  //{
+  // console.log('exec error: ' + error);
+  //}
+ }); 
+ var killtimeout=setTimeout(function(){
+  child.kill();
+  addtext="try load timout killed! \r\n";
+  //callback("killed");
+ },1000);
+}
