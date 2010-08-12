@@ -144,17 +144,24 @@ function watch()
       name=names[i];
       if((name in target_names) && (!(name in newobject_names)))
       {
-       Object.defineProperty(target, name, Object.getOwnPropertyDescriptor(newobject,name) )
+       delete target[name];
       }
      }
-
-     
-     //delete
-     for(var i in target)
-     {
-      if(target.hasOwnProperty(i) && (!(i in newobject)) )  delete target[i];
-     }
     };exports.copy2=copy2;
+    
+    function copy3(mirror,goal)
+    {
+     var proto = mirror.__proto__ = Object.getPrototypeOf(goal);
+     Object.getOwnPropertyNames(mirror).forEach(function(propertyName){
+       if(!Object.hasOwnProperty(goal,propertyName)) return
+       delete mirror[propertyName]
+     });
+     Object.getOwnPropertyNames(goal).forEach(function(propertyName){
+       if(!Object.hasOwnProperty(goal,propertyName)) return
+       Object.defineProperty(mirror,propertyName,Object.getOwnPropertyDescriptor(goal,propertyName))
+     })
+     return mirror
+    };exports.copy3=copy3;
 
 function watchrel()
 {

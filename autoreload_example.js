@@ -6,7 +6,7 @@ autoreload.watchrel('mymodule_example.js', function (newmodule){
    /* you can put here staff to make your module look like it was initialized well. */
    newmodule.name=mymodule.name;
    //mymodule.init(); // init the module before if possible, it will save error time.
-   autoreload.copy(mymodule,newmodule);
+   autoreload.copy3(mymodule,newmodule);
    //mymodule=newmodule; // replace reference - probabaly the best but you must update all references you have 
    //mymodule.moreinit(); // while this not finished you may get errors, because of not whell initilized your module.
 });
