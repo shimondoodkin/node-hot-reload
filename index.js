@@ -4,6 +4,41 @@
 // license: 2 close BSD.
 //
 
+/*
+short example:
+
+var hotreload= require('deps/node-hot-reload');hotreload.path=__dirname;
+hotreload.watchrel('mymodule_example.js', function (newmodule){
+hotreload.copy(mymodule,newmodule);
+});
+
+
+described example:
+var hotreload= require('deps/node-hot-reload');hotreload.path=__dirname;
+hotreload.watchrel('mymodule_example.js', function (newmodule){
+
+   // you can put here staff to make your module look like it was initialized well. 
+
+   newmodule.name=mymodule.name;
+
+   //mymodule.init(); // init the module before if possible, it will save error time.
+
+   hotreload.copy(mymodule,newmodule);
+
+   //mymodule=newmodule; // replace a reference - probabaly the best but you must update all references you have 
+
+
+   //mymodule.do_more_init_in_my_module();
+   // it is posible to do init after replacing references 
+   // but probably it is a bad idea 
+   // because while your module is not initilized yet you may get errors.
+   // 
+
+});
+
+*/
+
+
 var path = require('path');
 var fs = require('fs');
 var loadmoduletimer={};
@@ -16,6 +51,174 @@ this.path=__dirname;
 // it means that reloading modules sutes fine for development,
 // but do not relay on havy use of it for production.
 
+/* Sync unless callback given */
+function findModulePath (id, dirs, callback)
+{
+  process.assert(dirs.constructor == Array);
+
+  if (/^https?:\/\//.exec(id))
+  {
+    if (callback) {
+      callback(id);
+    } else {
+      throw new Error("Sync http require not allowed.");
+    }
+    return;
+  }
+
+  if (/\.(js|node)$/.exec(id)) {
+    id=id.substring(0,id.length-3);
+    //throw new Error("No longer accepting filename extension in module names");
+  }
+  
+  if (dirs.length == 0) {
+    if (callback) {
+      callback();
+    } else {
+      return; // sync returns null
+    }
+  }
+
+  var dir = dirs[0];
+  var rest = dirs.slice(1, dirs.length);
+
+  if (id.charAt(0) == '/') {
+    dir = '';
+    rest = [];
+  }
+
+  var locations = [
+    path.join(dir, id + ".js"),
+    path.join(dir, id + ".node"),
+    path.join(dir, id, "index.js"),
+    path.join(dir, id, "index.node")
+  ];
+
+  var ext;
+  var extensions = Object.keys(extensionCache);
+  for (var i = 0, l = extensions.length; i < l; i++) {
+    var ext = extensions[i];
+    locations.push(path.join(dir, id + ext));
+    locations.push(path.join(dir, id, 'index' + ext));
+  }
+
+  function searchLocations () {
+    var location = locations.shift();
+    if (!location) {
+      return findModulePath(id, rest, callback);
+    }
+
+    // if async
+    if (callback) {
+      path.exists(location, function (found) {
+        if (found) {
+          callback(location);
+        } else {
+          return searchLocations();
+        }
+      });
+
+    // if sync
+    } else {
+      if (existsSync(location)) {
+        return location;
+      } else {
+        return searchLocations();
+      }
+    }
+  }
+  return searchLocations();
+}
+/*
+var paths=require.paths;
+
+function findmodulefile(request,callback)
+{
+  if (!callback) {
+      // sync
+      var filename = findModulePath(request, paths);
+      if (!filename) {
+        throw new Error("Cannot find module '" + request + "'");
+      } else {
+        return filename;
+      }
+
+    } else {
+      // async
+      findModulePath(request, paths, function (filename) {
+        if (!filename) {
+          var err = new Error("Cannot find module '" + request + "'");
+          callback(err);
+        } else {
+          callback(filename);
+        }
+      });
+    }
+}
+
+var hotrequire;
+hotrequire=function ( rquiredfilename )
+{
+ console.log((new Date).toString()+' hot loading file: '+filename);
+ var content=fs.readFileSync(fd,'utf8');
+ var parseerror=false,errorincallback=false;
+ try
+ {
+  
+  var newmodule={}; 
+  var sandbox = {};
+  for (var k in global)
+  {
+   sandbox[k] = global[k];
+  }
+  
+  var filename = findmodulefile( rquiredfilename );
+  var dirname = path.dirname(filename);
+    
+  sandbox.require     = require;
+  sandbox.hotrequire  = hotrequire;
+  sandbox.exports     = newmodule;
+  sandbox.__filename  = filename;
+  sandbox.__dirname   = dirname;
+  sandbox.module      = newmodule;
+  sandbox.root        = global;
+  
+  // create wrapper function
+  var wrapper = "this.compiledWrapper = (function (exports, require, module, __filename, __dirname) { "
+              + content
+              + "\n});";
+  parseerror=true;
+  process.binding('evals').Script.runInNewContext(wrapper, sandbox, filename);
+  parseerror=false;
+  sandbox.compiledWrapper.apply(newmodule, [newmodule, require, newmodule, filename, dirname]);
+  errorincallback=true;
+  return newmodule;
+  errorincallback=false;
+ }
+ catch(err)
+ {
+  if (err) 
+  {
+   if(parseerror)
+   {
+    console.log("Error Parsing "+filename+" \r\n (restarting the application may give you a more meaningful error message.)");
+    console.log(" -- start tryload message -- ");
+    tryload(filename,function(errortext){
+     console.log(errortext);
+     console.log(" -- end tryload message -- ");
+    });
+   }
+   else
+   {
+    if(errorincallback)console.log("Error in Callback hot-reloading: "+filename);
+    console.log(err.stack);
+   }
+  }
+  //if (err) throw err; // need to add better error handling
+ }
+} exports.hotrequire=hotrequire;
+
+*/
 function loadlater( filename , callback )
 {
  //console.log((new Date).toString()+' will load file: '+filename);
@@ -40,6 +243,7 @@ function loadlater( filename , callback )
     }
     
     sandbox.require     = require;
+    //sandbox.hotrequire  = hotrequire;
     sandbox.exports     = newmodule;
     sandbox.__filename  = filename;
     sandbox.__dirname   = dirname;
@@ -101,7 +305,7 @@ function watch()
  }
  if(typeof watchfilename=='string') watchfilename=[watchfilename];
  
- console.log((new Date).toString()+' watch reaload file: '+filename);
+ //console.log((new Date).toString()+' watch reaload file: '+filename);
  trackedfiles[filename]=true;
  var functionload=function(curr,prev)
  {

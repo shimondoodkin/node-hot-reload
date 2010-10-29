@@ -1,19 +1,51 @@
+
 var http = require('http');
-var autoreload= require('./index');
+var autoreload= require('node-hot-reload');
 var mymodule= require('./mymodule_example');
 
+// explained example:
+
 autoreload.watchrel('mymodule_example.js', function (newmodule){
-   /* you can put here staff to make your module look like it was initialized well. */
-   newmodule.name=mymodule.name;
-   //mymodule.init(); // init the module before if possible, it will save error time.
+
+   /* you can put here staff to make your module
+      look like it was initialized well. */
+
+   newmodule.name=mymodule.name; // take care to copy previous data
+
+   //mymodule.init(); // init the module before if possible,
+                      // it will save error time.
+   // option 1
+   // replace reference - probably the best way
+   // but you must update all references you have 
+   // replace reference - probably the best way
+   // but you must update all references you have 
+
+   //mymodule=newmodule;
+   //myothermodulereference=newmodule;
+
+
+   // option 2
+   // copy properties from new module to old module
+   // as a solution to not having to update
+   // references to module object
    autoreload.copy(mymodule,newmodule);
-   //mymodule=newmodule; // replace reference - probabaly the best but you must update all references you have 
-   //mymodule.moreinit(); // while this not finished you may get errors, because of not whell initilized your module.
+
+   // option 3
+   //   manually patch the old object with parts of the new object.
+
+   // initialization or more initialization after switching to the new module
+   // mymodule.init();
+   // better don't do it, you may get errors,
+   // because of not well-initialized module.
+
 });
 
-//autoreload.watchrel('mymodule_example.js', function (newmodule){ mymodule=newmodule; });
-//autoreload.watch(mymodule.filename, function (newmodule){ mymodule=newmodule; }); // might not work if when started the module has errors or filename exports is missing  
+// simple example:
+//autoreload.watchrel('mymodule_example.js',
+  function (newmodule){ mymodule=newmodule; } );
 
+// idea: add loader function to automate loading of modules:
+//  
 
 mymodule.name="Shimon";
 
