@@ -1,6 +1,6 @@
 
 var http = require('http');
-var autoreload= require('node-hot-reload');
+var autoreload= require('./index');
 var mymodule= require('./mymodule_example');
 
 // explained example:
