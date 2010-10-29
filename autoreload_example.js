@@ -1,11 +1,16 @@
 
 var http = require('http');
-var autoreload= require('./index');
+var hotreload= require('./index'); 
+
+//1st require the module normaly
+    
 var mymodule= require('./mymodule_example');
+
+//2nd watch it and reload it dinamicaly
 
 // explained example:
 
-autoreload.watchrel('mymodule_example.js', function (newmodule){
+hotreload.watchrel('mymodule_example.js', function (newmodule){
 
    /* you can put here staff to make your module
       look like it was initialized well. */
@@ -28,7 +33,7 @@ autoreload.watchrel('mymodule_example.js', function (newmodule){
    // copy properties from new module to old module
    // as a solution to not having to update
    // references to module object
-   autoreload.copy(mymodule,newmodule);
+   hotreload.copy(mymodule,newmodule);
 
    // option 3
    //   manually patch the old object with parts of the new object.
@@ -40,12 +45,16 @@ autoreload.watchrel('mymodule_example.js', function (newmodule){
 
 });
 
-// simple example:
-//autoreload.watchrel('mymodule_example.js',
-  function (newmodule){ mymodule=newmodule; } );
+// simple example1:
+//hotreload.watchrel('mymodule_example.js',
+//  function (newmodule){ mymodule=newmodule; } );
+  
+// simple example2:
+//hotreload.watchrel('mymodule_example.js',
+//  function (newmodule){ hotreload.copy(mymodule,newmodule); } );
 
-// idea: add loader function to automate loading of modules:
-//  
+// idea: add loader function to automate reloading of modules:
+
 
 mymodule.name="Shimon";
 

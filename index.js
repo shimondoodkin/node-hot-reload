@@ -43,11 +43,13 @@ var path = require('path');
 var fs = require('fs');
 var loadmoduletimer={};
 var trackedfiles={}; exports.trackedfiles=trackedfiles;
-this.path=__dirname;
+this.path=__dirname+'/../'; // wild guess parent folder of this module is a modules directory
+//findModulePath is here but not in use. Feel free to implement it, also you might want to get the latest copy of findModulePath from node.js source code this module is based on old node.js source code of Module.js.
+
 // note: there is an upcomming version of node 
 // with auto reload modules probably it will be integrated in the near future.
 //
-// also every time you reload a module it does not free the memory of the reviews module.
+// also every time you reload a module it does not free the memory of the previews module.
 // it means that reloading modules sutes fine for development,
 // but do not relay on havy use of it for production.
 

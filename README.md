@@ -1,15 +1,45 @@
-#node-hot-reload example:
+# node.js hot reload of js files. (it is not restart, more like erlang) 
 
 
+## hotreload.path
+
+## hotreload.watch(script, reload_callback)
+watch script file,  onchange load the script file and call callback
+
+script is string
+
+reload_callback(newmodule) is a function,
+it has an argument - the loaded module object.
+
+## hotreload.watch(watchpath, script , reload_callback)
+watch one file and load another.
+
+watchpath can be a string or an array
+script is string 
+
+## hotreload.watchrel(script, reload_callback)
+watch script file relative to @hotreload.path@
+
+## hotreload.watchrel(watchpath, script , reload_callback)
+
+
+## example:
 server.js:
 
     var http = require('http');
-    var autoreload= require('node-hot-reload');
-    var mymodule= require('./mymodule_example');
+    var hotreload= require('node-hot-reload');
+        hotreload.path=__dirname;
+    
+    //1st require the module normaly
+    
+    var mymodule= require('./mymodule_example'); 
+    
+    
+    //2nd watch it and reload it dinamicaly
     
     // explained example:
 
-    autoreload.watchrel('mymodule_example.js', function (newmodule){
+    hotreload.watchrel('mymodule_example.js', function (newmodule){
 
        /* you can put here staff to make your module
           look like it was initialized well. */
@@ -32,7 +62,7 @@ server.js:
        // copy properties from new module to old module
        // as a solution to not having to update
        // references to module object
-       autoreload.copy(mymodule,newmodule);
+       hotreload.copy(mymodule,newmodule);
 
        // option 3
        //   manually patch the old object with parts of the new object.
@@ -44,12 +74,15 @@ server.js:
 
     });
     
-    // simple example:
-    //
-    //autoreload.watchrel('mymodule_example.js',
-      function (newmodule){ mymodule=newmodule; } );
-
-    // idea: add loader function to automate loading of modules:
+    // simple example1:
+    //hotreload.watchrel('mymodule_example.js',
+    //  function (newmodule){ mymodule=newmodule; } );
+      
+    // simple example2:
+    //hotreload.watchrel('mymodule_example.js',
+    //  function (newmodule){ hotreload.copy(mymodule,newmodule); } );
+    
+    // idea: add loader function to automate reloading of modules:
     //  
     
     mymodule.name="Shimon";
