@@ -1,6 +1,6 @@
 
 var http = require('http');
-var hotreload= require('./index'); 
+var hotreload= require('./index');hotreload.path=__dirname; 
 
 //1st require the module normaly
     
